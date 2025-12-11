@@ -10,4 +10,5 @@ services:
       - ./:/app
       - ./data:/app/data
       - ./logs:/app/logs
+      - ./session:/app/session
       # - ./mtproto_session.session:/app/mtproto_session.session

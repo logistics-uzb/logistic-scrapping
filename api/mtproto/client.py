@@ -7,7 +7,7 @@ load_dotenv()
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 
-SESSION_NAME = "mtproto_session"
+SESSION_NAME = "session/mtproto_session"
 
 # GLOBAL CLIENT
 client = TelegramClient(SESSION_NAME, API_ID, API_HASH)
