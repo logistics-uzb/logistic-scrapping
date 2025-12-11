@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  scraper:
+    build: .
+    container_name: telegram_scraper
+    restart: always
+    env_file: .env
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - ./:/app
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./mtproto_session.session:/app/mtproto_session.session

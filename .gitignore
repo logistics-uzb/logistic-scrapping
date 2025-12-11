@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+env/
+.env
+/data/last.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS system files
+*.log
+*.sqlite3
+
+# Sensitive or local files
+cookies.json
+last.json
+debug.html
+
+# Drivers
+chromedriver.exe
+
+# IDE files
+.vscode/
