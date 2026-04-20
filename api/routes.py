@@ -1,17 +1,20 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Header, HTTPException, status
 import asyncio
-from api.mtproto.client import fetch_messages
+import os
+from typing import List, Optional
+
+from pydantic import BaseModel, Field
+
+from api.mtproto.client import fetch_messages, send_message_to_groups
 from config.settings import CHANNEL_LIST
 from utils.storage import load_last_ids, save_last_ids
 
+# ✅ Router yaratamiz (faqat shu!)
 router = APIRouter()
+
 
 @router.get("/mtproto/channels")
 async def mtproto_channels(limit: int = 20):
-    """
-    Bir nechta kanallarni scraping qilish.
-    Kanallar .env (CHANNELS=...) ichidan olinadi.
-    """
 
     real_limit = None if limit == 0 else limit
 
@@ -20,7 +23,6 @@ async def mtproto_channels(limit: int = 20):
         for channel in CHANNEL_LIST
     ]
 
-    # asyncio.run() emas!
     results = await asyncio.gather(*tasks)
 
     response = {}
@@ -35,6 +37,7 @@ async def mtproto_channels(limit: int = 20):
 
 @router.get("/mtproto/new")
 async def mtproto_new():
+
     last_ids = load_last_ids()
     batch_size = 200
 
@@ -52,20 +55,17 @@ async def mtproto_new():
             if not batch:
                 break
 
-            # Telethon iter_messages reverse bo'ladi → sorted
             for msg in batch:
                 if msg["id"] > old_last_id:
                     all_new_messages.append(msg)
                 else:
-                    break  # eski xabarga yetdik
+                    break
 
-            # Batchni davom ettirish uchun offset
             if batch[-1]["id"] <= old_last_id:
                 break
 
             offset_id = batch[-1]["id"]
 
-        # Agar yangi xabar bor bo'lsa → oxirgi id ni yangilaymiz
         if all_new_messages:
             new_last_ids[channel] = all_new_messages[0]["id"]
         else:
@@ -77,6 +77,39 @@ async def mtproto_new():
         }
 
     save_last_ids(new_last_ids)
+
     return response
 
 
+class SendRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+    groups: List[str] = Field(default_factory=list)
+
+
+
+@router.post("/mtproto/send")
+async def mtproto_send(
+    payload: SendRequest,
+    x_internal_token: Optional[str] = Header(default=None, alias="X-Internal-Token"),
+):
+
+    print("SEND ENDPOINT CALLED")
+
+    expected = os.getenv("INTERNAL_API_TOKEN")
+
+    if expected:
+        if not x_internal_token or x_internal_token != expected:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthorized",
+            )
+
+    await send_message_to_groups(
+        message=payload.message,
+        groups=payload.groups
+    )
+
+    return {
+        "success": True,
+        "groupsCount": len(payload.groups),
+    }
