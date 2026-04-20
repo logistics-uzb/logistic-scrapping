@@ -82,12 +82,49 @@ async def mtproto_new():
 
 
 class SendRequest(BaseModel):
-    message: str = Field(..., min_length=1)
-    groups: List[str] = Field(default_factory=list)
+    message: str = Field(
+        ..., 
+        min_length=1, 
+        description="Jo'natilishi kerak bo'lgan xabar matni", 
+        json_schema_extra={"example": "Salom, bu test xabari!"}
+    )
+    groups: List[str] = Field(
+        default_factory=list, 
+        description="Xabar yuboriladigan guruhlar yoki kanallar ro'yxati (@username, havolalar yoki ID)", 
+        json_schema_extra={"example": ["@test_guruh", "https://t.me/boshqa_kanal", "-100123456789"]}
+    )
 
 
 
-@router.post("/mtproto/send")
+@router.post(
+    "/mtproto/send",
+    summary="MTProto orqali guruhlarga xabar yuborish",
+    description=(
+        "Ushbu endpoint orqali berilgan guruhlar va kanallar ro'yxatiga Telegram "
+        "orqali avtomatik xabar yuboriladi.\n\n"
+        "**Xavfsizlik**: Agar serverda `INTERNAL_API_TOKEN` o'rnatilgan bo'lsa, "
+        "so'rov sarlavhasida (header) `X-Internal-Token` to'g'ri qiymat bilan yuborilishi shart."
+    ),
+    response_description="Xabar yuborish jarayoni natijasi",
+    responses={
+        200: {
+            "description": "Muvaffaqiyatli yuborildi",
+            "content": {
+                "application/json": {
+                    "example": {"success": True, "groupsCount": 2}
+                }
+            }
+        },
+        401: {
+            "description": "Ruxsat etilmagan (Token xato yoki mavjud emas)",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Unauthorized"}
+                }
+            }
+        }
+    }
+)
 async def mtproto_send(
     payload: SendRequest,
     x_internal_token: Optional[str] = Header(default=None, alias="X-Internal-Token"),
