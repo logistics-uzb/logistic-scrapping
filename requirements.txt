@@ -8,3 +8,5 @@ loguru
 telethon
 python-socketio[asyncio]
 aiohttp
+
+
